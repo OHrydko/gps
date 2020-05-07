@@ -91,6 +91,7 @@ public class MainViewModel extends ViewModel {
     public void start() {
         searchLocation();
         isStart.postValue(false);
+        text.postValue(distance + "");
     }
 
     public void stop() {
