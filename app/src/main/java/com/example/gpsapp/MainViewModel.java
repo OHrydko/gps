@@ -11,7 +11,6 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.provider.Settings;
 import android.util.Log;
 import android.widget.Toast;
@@ -23,16 +22,14 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 public class MainViewModel extends ViewModel {
-    private static final int HANDLER_DELAY = 20000; // 20 seconds
     public MutableLiveData<String> text = new MutableLiveData<>();
-    public MutableLiveData<String> texts = new MutableLiveData<>();
-    private final Handler handler = new Handler();
     private Location startLocation;
     private boolean isFirst = true;
     private LocationManager mLocationManager;
     private Context context;
     private Activity activity;
     private int distance = 0;
+    private MutableLiveData<Boolean> isStart = new MutableLiveData<>(true);
 
     void init(Context context, Activity activity) {
         this.context = context;
@@ -41,7 +38,7 @@ public class MainViewModel extends ViewModel {
 
     }
 
-    private void obtainLocation() {
+    private void searchLocation() {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED &&
                 ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -90,25 +87,17 @@ public class MainViewModel extends ViewModel {
         return false;
     }
 
-    private Runnable runnable = new Runnable() {
-        @Override
-        public void run() {
-            obtainLocation();
-            handler.postDelayed(this, HANDLER_DELAY);
-        }
-    };
 
     public void start() {
-        obtainLocation();
-//        MyLocation.LocationResult locationResult = new MyLocation.LocationResult() {
-//            @Override
-//            public void gotLocation(Location location) {
-//                Log.d("location", location.getLongitude() + " " + location.getLatitude());
-//                text.postValue(location.getLatitude() + "");
-//            }
-//        };
-//        MyLocation myLocation = new MyLocation();
-//        myLocation.getLocation(context, locationResult);
+        searchLocation();
+        isStart.postValue(false);
+    }
+
+    public void stop() {
+        mLocationManager.removeUpdates(locationListenerNetwork);
+        mLocationManager.removeUpdates(locationListenerGps);
+        distance = 0;
+        isStart.postValue(true);
     }
 
     @SuppressLint("MissingPermission")
@@ -117,11 +106,11 @@ public class MainViewModel extends ViewModel {
                 0, locationListenerNetwork);
         mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000,
                 0, locationListenerGps);
+
     }
 
 
-
-    LocationListener locationListenerGps = new LocationListener() {
+    private LocationListener locationListenerGps = new LocationListener() {
         public void onLocationChanged(Location location) {
             if (isFirst) {
                 startLocation = location;
@@ -135,7 +124,6 @@ public class MainViewModel extends ViewModel {
 
             }
             Log.d("location", location.getLongitude() + " " + location.getLatitude());
-            texts.postValue(location.getLatitude() + "");
         }
 
         public void onProviderDisabled(String provider) {
@@ -147,11 +135,10 @@ public class MainViewModel extends ViewModel {
         public void onStatusChanged(String provider, int status, Bundle extras) {
         }
     };
-
-    LocationListener locationListenerNetwork = new LocationListener() {
+    private LocationListener locationListenerNetwork = new LocationListener() {
         public void onLocationChanged(Location location) {
+//
             Log.d("network", location.getLongitude() + " " + location.getLatitude());
-            //text.postValue(location.getLatitude() + "");
         }
 
         public void onProviderDisabled(String provider) {
@@ -163,11 +150,17 @@ public class MainViewModel extends ViewModel {
         public void onStatusChanged(String provider, int status, Bundle extras) {
         }
     };
+
 
     private Float calculateDistance(Location start, Location end) {
         float[] results = new float[1];
         Location.distanceBetween(start.getLatitude(), start.getLongitude(),
                 end.getLatitude(), end.getLongitude(), results);
         return results[0];
+    }
+
+
+    public MutableLiveData<Boolean> isStart() {
+        return isStart;
     }
 }
