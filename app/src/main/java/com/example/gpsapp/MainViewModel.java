@@ -99,6 +99,7 @@ public class MainViewModel extends ViewModel {
         mLocationManager.removeUpdates(locationListenerGps);
         distance = 0;
         isStart.postValue(true);
+        isFirst = true;
     }
 
     @SuppressLint("MissingPermission")
